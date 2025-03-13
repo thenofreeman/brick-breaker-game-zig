@@ -1,4 +1,7 @@
 const std = @import("std");
+// const eql = std.mem.eql;
+const ArrayList = std.ArrayList;
+
 const rl = @import("raylib");
 
 const rand = std.crypto.random;
@@ -117,6 +120,53 @@ const Ball = struct {
 
 };
 
+const Brick = struct {
+    body: rl.Rectangle,
+    color: rl.Color,
+    show: bool,
+
+    pub fn init(pos: rl.Vector2, dim: rl.Vector2, color: rl.Color) Brick {
+        return .{
+            .body = .{
+                .x = pos.x,
+                .y = pos.y,
+                .width = dim.x,
+                .height = dim.y
+            },
+            .color = color,
+            .show = true,
+        };
+    }
+
+    pub fn draw(self: Brick) void {
+        if (!self.show) return;
+
+        rl.drawRectangleRec(self.body, self.color);
+    }
+};
+
+fn Grid(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        list: ArrayList(T),
+
+        pub fn init(allocator: std.mem.Allocator) Self {
+            return .{
+                .list = ArrayList(T).init(allocator),
+            };
+        }
+
+        pub fn deinit(self: Self) void {
+            self.list.deinit();
+        }
+
+        pub fn add(self: *Self, el: T) !void {
+            try self.list.append(el);
+        }
+    };
+}
+
 // global
 const game = Game{}; // var soon
 
@@ -130,6 +180,56 @@ pub fn main() anyerror!void {
 
     var player = Player.init();
     var ball = Ball.init(1);
+
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    const grid =
+        \\----------
+        \\----RR----
+        \\---G--G---
+        \\--B----B--
+        \\---G--G---
+        \\----RR----
+        \\----------
+        ;
+
+    var brickGrid = Grid(Brick).init(arena.allocator());
+    defer brickGrid.deinit();
+
+    const ncols = 10;
+    const nrows = grid.len / ncols;
+    const brickSize: rl.Vector2 = .{
+        .x = game.window.x / @as(f32, @floatFromInt(ncols)),
+        .y = game.window.y / 2.0 / @as(f32, @floatFromInt(nrows)),
+    };
+
+    for (grid, 0..) |c, i| {
+        const color = switch(c) {
+            'R' => rl.Color.red,
+            'G' => rl.Color.green,
+            'B' => rl.Color.blue,
+            '-' => rl.Color.alpha(rl.Color.black, 0),
+            else => {
+                continue;
+            }
+        };
+
+        const xpos = brickSize.x * @as(f32, @floatFromInt(i % nrows));
+        const ypos = brickSize.y * @as(f32, @floatFromInt(i / nrows));
+
+        try brickGrid.add(Brick{
+            .body = .{
+                .x = xpos,
+                .y = ypos,
+                .width = brickSize.x,
+                .height = brickSize.y,
+            },
+            .color = color,
+            .show = (c != '-')
+        });
+
+    }
 
     var state: State = .MENU;
 
@@ -188,6 +288,10 @@ pub fn main() anyerror!void {
                 defer rl.endDrawing();
 
                 rl.clearBackground(rl.Color.black);
+
+                for (brickGrid.list.items) |brick| {
+                    brick.draw();
+                }
 
                 player.draw();
                 ball.draw();
