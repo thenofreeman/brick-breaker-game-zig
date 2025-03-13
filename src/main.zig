@@ -154,10 +154,12 @@ fn Grid(comptime T: type) type {
         const Self = @This();
 
         list: ArrayList(T),
+        count: u16,
 
         pub fn init(allocator: std.mem.Allocator) Self {
             return .{
                 .list = ArrayList(T).init(allocator),
+                .count = 0,
             };
         }
 
@@ -167,6 +169,9 @@ fn Grid(comptime T: type) type {
 
         pub fn add(self: *Self, el: T) !void {
             try self.list.append(el);
+            if (el.show) {
+                self.count += 1;
+            }
         }
     };
 }
@@ -224,6 +229,7 @@ pub fn main() anyerror!void {
             'B' => rl.Color.blue,
             'Y' => rl.Color.yellow,
             '-' => rl.Color.alpha(rl.Color.black, 0),
+            '\n' => rl.Color.alpha(rl.Color.black, 0), // should find a better fix
             else => rl.Color.alpha(rl.Color.white, 0), // shouldn't be seen
         };
 
@@ -239,7 +245,7 @@ pub fn main() anyerror!void {
                 .height = brickSize.y,
             },
             .color = color,
-            .show = (c != '-')
+            .show = (c != '-' and c != '\n'),
         });
     }
 
@@ -280,6 +286,10 @@ pub fn main() anyerror!void {
                     state = .GAMEOVER;
                 }
 
+                if (brickGrid.count <= 0) {
+                    state = .NEXTLEVEL;
+                }
+
                 player.update();
                 ball.update();
 
@@ -318,9 +328,11 @@ pub fn main() anyerror!void {
                             } else if (ball.pos.y < brick.body.y + brick.body.height) {
                                 ball.setYDirection(-1);
                             }
+
+                            brickGrid.count -= 1;
+                            brick.setShow(false);
                         }
 
-                        brick.setShow(false);
                     }
 
                 }
@@ -352,6 +364,16 @@ pub fn main() anyerror!void {
                 rl.drawText("Paused.", 380, 200, 20, rl.Color.light_gray);
             },
             .NEXTLEVEL => {
+                if (rl.isKeyPressed(.space)) {
+                    state = .MENU;
+                }
+
+                rl.beginDrawing();
+                defer rl.endDrawing();
+
+                rl.clearBackground(rl.Color.black);
+
+                rl.drawText("WINNER!", 380, 200, 20, rl.Color.light_gray);
 
             },
             .GAMEOVER => {
