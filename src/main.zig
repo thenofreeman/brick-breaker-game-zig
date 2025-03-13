@@ -75,7 +75,7 @@ const Ball = struct {
     radius: f32,
     color: rl.Color,
 
-    speed: f32 = 7,
+    speed: f32 = 4,
     velocity: rl.Vector2 = .{ .x = 5, .y = 5 },
 
     pub fn init(n: u4) Ball {
@@ -142,6 +142,10 @@ const Brick = struct {
         if (!self.show) return;
 
         rl.drawRectangleRec(self.body, self.color);
+    }
+
+    pub fn setShow(self: *Brick, show: bool) void {
+        self.show = show;
     }
 };
 
@@ -291,6 +295,16 @@ pub fn main() anyerror!void {
                 }
 
                 // handle brick collisions
+                for (brickGrid.list.items) |*brick| {
+                    if (rl.checkCollisionCircleRec(ball.pos, ball.radius, brick.body)) {
+                        if (brick.show) {
+                            ball.setYDirection(1);
+                        }
+
+                        brick.setShow(false);
+                    }
+
+                }
 
                 rl.beginDrawing();
                 defer rl.endDrawing();
