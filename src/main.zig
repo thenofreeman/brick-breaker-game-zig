@@ -272,6 +272,10 @@ pub fn main() anyerror!void {
                     state = .PAUSED;
                 }
 
+                if (rl.isKeyPressed(.r)) {
+                    ball.reset();
+                }
+
                 if (player.lives < 0) {
                     state = .GAMEOVER;
                 }
@@ -279,9 +283,14 @@ pub fn main() anyerror!void {
                 player.update();
                 ball.update();
 
-                // handle wall collisions
                 if (rl.checkCollisionCircleRec(ball.pos, ball.radius, player.body)) {
-                    ball.setYDirection(-1);
+                    if (ball.pos.x < player.body.x) {
+                        ball.setXDirection(-1);
+                    } else if (ball.pos.x >= player.body.x + player.body.width) {
+                        ball.setXDirection(1);
+                    } else {
+                        ball.setYDirection(-1);
+                    }
                 }
 
                 if (rl.checkCollisionCircleLine(ball.pos, ball.radius, game.topLeftCorner, game.bottomLeftCorner)) {
@@ -298,7 +307,17 @@ pub fn main() anyerror!void {
                 for (brickGrid.list.items) |*brick| {
                     if (rl.checkCollisionCircleRec(ball.pos, ball.radius, brick.body)) {
                         if (brick.show) {
-                            ball.setYDirection(1);
+                            if (ball.pos.x < brick.body.x) {
+                                ball.setXDirection(-1);
+                            } else if (ball.pos.x > brick.body.x + brick.body.width) {
+                                ball.setXDirection(1);
+                            }
+
+                            if (ball.pos.y > brick.body.y) {
+                                ball.setYDirection(1);
+                            } else if (ball.pos.y < brick.body.y + brick.body.height) {
+                                ball.setYDirection(-1);
+                            }
                         }
 
                         brick.setShow(false);
