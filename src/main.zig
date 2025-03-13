@@ -184,14 +184,23 @@ pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
+    // const grid =
+    //     \\----------
+    //     \\----RR----
+    //     \\---G--G---
+    //     \\--B----B--
+    //     \\---G--G---
+    //     \\----RR----
+    //     \\----------
+    //     ;
     const grid =
         \\----------
-        \\----RR----
-        \\---G--G---
-        \\--B----B--
-        \\---G--G---
-        \\----RR----
-        \\----------
+        \\---RRRR---
+        \\--G----G--
+        \\-B--YY--B-
+        \\-B--YY--B-
+        \\--G----G--
+        \\---RRRR---
         ;
 
     var brickGrid = Grid(Brick).init(arena.allocator());
@@ -209,14 +218,14 @@ pub fn main() anyerror!void {
             'R' => rl.Color.red,
             'G' => rl.Color.green,
             'B' => rl.Color.blue,
+            'Y' => rl.Color.yellow,
             '-' => rl.Color.alpha(rl.Color.black, 0),
-            else => {
-                continue;
-            }
+            else => rl.Color.alpha(rl.Color.white, 0), // shouldn't be seen
         };
 
-        const xpos = brickSize.x * @as(f32, @floatFromInt(i % nrows));
-        const ypos = brickSize.y * @as(f32, @floatFromInt(i / nrows));
+
+        const xpos = brickSize.x * @as(f32, @floatFromInt(i % (ncols+1)));
+        const ypos = brickSize.y * @as(f32, @floatFromInt(i / (ncols+1)));
 
         try brickGrid.add(Brick{
             .body = .{
@@ -228,7 +237,6 @@ pub fn main() anyerror!void {
             .color = color,
             .show = (c != '-')
         });
-
     }
 
     var state: State = .MENU;
