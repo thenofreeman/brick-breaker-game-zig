@@ -210,6 +210,7 @@ pub fn main() anyerror!void {
         \\-B--YY--B-
         \\--G----G--
         \\---RRRR---
+        \\----------
         ;
 
     var brickGrid = Grid(Brick).init(arena.allocator());
